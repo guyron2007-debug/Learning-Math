@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Rubik', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --color-ink: #1e1b4b;
+}
+
+:root {
+  --app-bg: radial-gradient(1200px 600px at 80% -10%, #ede9fe 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #e0f2fe 0%, transparent 60%), #faf7ff;
+}
+.dark {
+  --app-bg: radial-gradient(1200px 600px at 80% -10%, #2e1065 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #082f49 0%, transparent 60%), #0f0b1e;
+  color-scheme: dark;
+}
+
+html {
+  font-size: var(--root-size, 16px);
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  margin: 0;
+  background: var(--app-bg);
+  background-attachment: fixed;
+  min-height: 100dvh;
+  @apply text-ink dark:text-violet-50 font-sans antialiased;
+}
+
+/* Formulas are always LTR, even inside Hebrew text. */
+.math {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+.katex {
+  font-size: 1.12em;
+}
+.math-block .katex {
+  font-size: clamp(1.6rem, 4.5vw, 2.4rem);
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:disabled {
+  cursor: default;
+}
+:focus-visible {
+  outline: 3px solid #a78bfa;
+  outline-offset: 2px;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.08) rotate(2deg); }
+}
+.flame {
+  display: inline-block;
+  animation: flicker 1.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shake, .flame { animation: none; }
+}
