@@ -73,6 +73,10 @@ export function SettingsScreen() {
           <span className="font-medium">🌙 מצב כהה</span>
           <input type="checkbox" checked={settings.dark} onChange={(e) => setSettings({ dark: e.target.checked })} className="h-6 w-6 accent-violet-600" />
         </label>
+        <label className="flex items-center justify-between gap-3">
+          <span className="font-medium">🧙 הקוסם מנצנץ כשאני חושבת יותר מדקה</span>
+          <input type="checkbox" checked={settings.wizardNudge} onChange={(e) => setSettings({ wizardNudge: e.target.checked })} className="h-6 w-6 accent-violet-600" />
+        </label>
         <div>
           <span className="font-medium">גודל טקסט</span>
           <div className="mt-2 grid grid-cols-3 gap-2">

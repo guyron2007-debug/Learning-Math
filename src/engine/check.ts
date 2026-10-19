@@ -1,31 +1,4 @@
-import {
-  create,
-  parseDependencies,
-  addDependencies,
-  subtractDependencies,
-  multiplyDependencies,
-  divideDependencies,
-  powDependencies,
-  sqrtDependencies,
-  unaryMinusDependencies,
-  unaryPlusDependencies,
-  absDependencies,
-  type MathNode,
-} from 'mathjs/number';
-
-// A slim math.js instance: only what expression equivalence needs (keeps the bundle small).
-const { parse } = create({
-  parseDependencies,
-  addDependencies,
-  subtractDependencies,
-  multiplyDependencies,
-  divideDependencies,
-  powDependencies,
-  sqrtDependencies,
-  unaryMinusDependencies,
-  unaryPlusDependencies,
-  absDependencies,
-});
+import { parse, type MathNode } from './mathjs';
 
 /** Normalizes on-screen keypad symbols and unicode into something mathjs can parse. */
 export function normalizeInput(raw: string): string {

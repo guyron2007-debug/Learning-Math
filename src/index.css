@@ -74,6 +74,13 @@ button:disabled {
   animation: flicker 1.2s ease-in-out infinite;
   transform-origin: bottom center;
 }
+@keyframes twinkle {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0); transform: scale(1); }
+  50% { box-shadow: 0 0 0 8px rgba(167, 139, 250, 0.35); transform: scale(1.06); }
+}
+.twinkle {
+  animation: twinkle 1.6s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .shake, .flame { animation: none; }
+  .shake, .flame, .twinkle { animation: none; }
 }

@@ -1,17 +1,43 @@
 import type { Difficulty, GeneratorDef, Step, StepProblem } from '../../engine/types';
 import { type Rng, randInt, randNonZero, randSigned } from '../../engine/rng';
-import { div, lcm, qLatex, add } from '../../engine/rational';
+import { div, lcm, qLatex, add, toNumber } from '../../engine/rational';
 import { linExpr, scaled, m } from '../../engine/format';
-import { makeChoices } from '../../engine/choices';
+import { makeCodedChoices } from '../../engine/choices';
+import type { HelpStep } from '../../tutor/types';
+import {
+  backSubstituteStep,
+  clearDenominatorStep,
+  collectStep,
+  commonDenominatorStep,
+  distributeStep,
+  divideStep,
+  eliminationScaleStep,
+  eliminationSubtractStep,
+} from '../../tutor/equationSteps';
 import { makeSystem, systemLatex } from './system';
 
-function step(rng: Rng, prompt: string, correct: string, distractors: string[], fallback: () => string, hint: string, explanation: string): Step {
-  const { options, correctIndex } = makeChoices(rng, m(correct), distractors.map(m), () => m(fallback()));
-  return { prompt, options, correctIndex, hint, explanation };
+/** A multiple-choice step; each distractor is [misconception code, LaTeX]. */
+function step(
+  rng: Rng,
+  prompt: string,
+  correct: string,
+  distractors: Array<[string, string]>,
+  fallback: () => string,
+  help: HelpStep,
+  explanation: string,
+): Step {
+  const { options, correctIndex, optionCodes } = makeCodedChoices(
+    rng,
+    m(correct),
+    distractors.map(([code, value]) => ({ code, value: m(value) })),
+    () => m(fallback()),
+  );
+  return { prompt, options, correctIndex, optionCodes, help, explanation };
 }
 
 const xPlus = (a: number) => linExpr([[1, 'x'], [a, '']]);
 const eqn = (k: number, r: number | string) => `${linExpr([[k, 'x']])} = ${r}`;
+const num = (n: number) => m(String(n));
 
 /** a(x + b) = c·x + d, solved in three steps. */
 export function linearSteps(d: Difficulty, rng: Rng): StepProblem {
@@ -25,6 +51,7 @@ export function linearSteps(d: Difficulty, rng: Rng): StepProblem {
   const k = a - c;
   const r = dd - a * b;
   const sol = div(r, k);
+  const answer = toNumber(sol);
 
   const steps: Step[] = [
     step(
@@ -32,21 +59,25 @@ export function linearSteps(d: Difficulty, rng: Rng): StepProblem {
       'פתחי את הסוגריים. מה מקבלים?',
       `${linExpr([[a, 'x'], [a * b, '']])} = ${rhs}`,
       [
-        `${linExpr([[a, 'x'], [b, '']])} = ${rhs}`,
-        `${linExpr([[a, 'x'], [-a * b, '']])} = ${rhs}`,
-        `${linExpr([[1, 'x'], [a * b, '']])} = ${rhs}`,
+        ['distribute-partial', `${linExpr([[a, 'x'], [b, '']])} = ${rhs}`],
+        ['distribute-sign', `${linExpr([[a, 'x'], [-a * b, '']])} = ${rhs}`],
+        ['distribute-coef', `${linExpr([[1, 'x'], [a * b, '']])} = ${rhs}`],
       ],
       () => `${linExpr([[a, 'x'], [a * b + randSigned(rng, 1, 5), '']])} = ${rhs}`,
-      `כופלים את ${m(String(a))} גם ב-${m('x')} וגם ב-${m(String(b))}.`,
+      distributeStep(rng, [[a, b]]),
       `${m(`${a} \\cdot ${b < 0 ? `(${b})` : b} = ${a * b}`)}, ולכן מקבלים ${m(`${linExpr([[a, 'x'], [a * b, '']])} = ${rhs}`)}.`,
     ),
     step(
       rng,
       `העבירי את ה-${m('x')}-ים לשמאל ואת המספרים לימין. מה מקבלים?`,
       eqn(k, r),
-      [eqn(a + c, r), eqn(k, dd + a * b), eqn(a + c, dd + a * b)],
+      [
+        ['coef-sign', eqn(a + c, r)],
+        ['sign-move', eqn(k, dd + a * b)],
+        ['sign-move', eqn(a + c, dd + a * b)],
+      ],
       () => eqn(k, r + randSigned(rng, 1, 6)),
-      'איבר שעובר אגף מחליף סימן.',
+      collectStep(rng, { A: a, B: a * b, C: c, D: dd }, [answer]),
       `${m(`${a}x ${c < 0 ? '+' : '-'} ${Math.abs(c)}x = ${k}x`)} ו-${m(`${dd} ${a * b < 0 ? '+' : '-'} ${Math.abs(a * b)} = ${r}`)}.`,
     ),
     step(
@@ -54,12 +85,12 @@ export function linearSteps(d: Difficulty, rng: Rng): StepProblem {
       `מצאי את ${m('x')}.`,
       `x = ${qLatex(sol)}`,
       [
-        `x = ${qLatex(r === 0 ? 1 : div(k, r))}`,
-        `x = ${qLatex(r - k)}`,
-        `x = ${qLatex(div(-r, k))}`,
+        ['divide-inverted', `x = ${qLatex(r === 0 ? 1 : div(k, r))}`],
+        ['subtract-instead', `x = ${qLatex(r - k)}`],
+        ['divide-sign', `x = ${qLatex(div(-r, k))}`],
       ],
       () => `x = ${qLatex(add(sol, randSigned(rng, 1, 4)))}`,
-      `מחלקים את שני האגפים במקדם של ${m('x')}, כלומר ב-${m(String(k))}.`,
+      divideStep(rng, k, r, [answer]),
       `${m(`x = \\frac{${r}}{${k}} = ${qLatex(sol)}`)}`,
     ),
   ];
@@ -73,6 +104,8 @@ export function linearSteps(d: Difficulty, rng: Rng): StepProblem {
     latex,
     steps,
     finalAnswer: m(`x = ${qLatex(sol)}`),
+    skills: steps.map((st) => st.help.skill),
+    finalValues: { x: answer },
   };
 }
 
@@ -88,44 +121,67 @@ export function fractionSteps(d: Difficulty, rng: Rng): StepProblem {
   const b = q * k2 - x;
   const c = k1 + k2;
   const s1 = L / p, s2 = L / q;
+  const K = s1 + s2;
+  const B = s1 * a + s2 * b;
   const latex = `\\frac{${xPlus(a)}}{${p}} + \\frac{${xPlus(b)}}{${q}} = ${c}`;
   const cleared = (u: number, v: number, rhs: number) => `${u}(${xPlus(a)}) + ${v}(${xPlus(b)}) = ${rhs}`;
-  const combined = (u: number, v: number) => `${linExpr([[s1 + s2, 'x'], [u * a + v * b, '']])} = ${c * L}`;
+  const combined = (constant: number, coef = K) => `${linExpr([[coef, 'x'], [constant, '']])} = ${c * L}`;
 
   const steps: Step[] = [
     {
-      ...makeChoices(rng, m(String(L)), [p * q, p + q, Math.max(p, q), 2 * L].filter((n) => n !== L).map((n) => m(String(n))), () => m(String(L + randInt(rng, 1, 9)))),
+      ...makeCodedChoices(
+        rng,
+        num(L),
+        [
+          { code: 'lcd-product', value: num(p * q) },
+          { code: 'lcd-sum', value: num(p + q) },
+          { code: 'lcd-max', value: num(Math.max(p, q)) },
+          { code: 'lcd-double', value: num(2 * L) },
+        ],
+        () => num(L + randInt(rng, 1, 9)),
+      ),
       prompt: 'מהו המכנה המשותף הקטן ביותר?',
-      summary: `מכנה משותף: ${m(String(L))}`,
-      hint: `חפשי את המספר הקטן ביותר שמתחלק גם ב-${m(String(p))} וגם ב-${m(String(q))}.`,
-      explanation: `${m(String(L))} מתחלק ב-${m(String(p))} וגם ב-${m(String(q))}, ואין מספר קטן ממנו שעושה את זה.`,
+      help: commonDenominatorStep(p, q, L),
+      explanation: `${num(L)} מתחלק ב-${num(p)} וגם ב-${num(q)}, ואין מספר קטן ממנו שעושה את זה.`,
     },
     step(
       rng,
-      `כפלי כל איבר ב-${m(String(L))}. מה מקבלים?`,
+      `כפלי כל איבר ב-${num(L)}. מה מקבלים?`,
       cleared(s1, s2, c * L),
-      [cleared(s1, s2, c), cleared(s2, s1, c * L), cleared(1, 1, c * L)],
+      [
+        ['clear-rhs', cleared(s1, s2, c)],
+        ['clear-swap', cleared(s2, s1, c * L)],
+        ['clear-none', cleared(1, 1, c * L)],
+      ],
       () => cleared(s1, s2, c * L + randSigned(rng, 1, 6)),
-      `${m(`${L} : ${p} = ${s1}`)}. אל תשכחי לכפול גם את האגף הימני!`,
-      `${m(`${L} \\cdot \\frac{${xPlus(a)}}{${p}} = ${s1}(${xPlus(a)})`)}, וכך גם לשבר השני. האגף הימני: ${m(`${c} \\cdot ${L} = ${c * L}`)}.`,
+      clearDenominatorStep(rng, [p, q], L, c),
+      `${m(`${L} \\cdot \\frac{${xPlus(a)}}{${p}} = ${s1}(${xPlus(a)})`)}, וכך גם לשבר השני. הצד הימני: ${m(`${c} \\cdot ${L} = ${c * L}`)}.`,
     ),
     step(
       rng,
       'פתחי סוגריים וכנסי איברים דומים.',
-      combined(s1, s2),
-      [`${linExpr([[s1 + s2, 'x'], [a + b, '']])} = ${c * L}`, `${linExpr([[s1 + s2, 'x'], [s1 * a - s2 * b, '']])} = ${c * L}`, `${linExpr([[2, 'x'], [s1 * a + s2 * b, '']])} = ${c * L}`],
-      () => `${linExpr([[s1 + s2, 'x'], [s1 * a + s2 * b + randSigned(rng, 1, 5), '']])} = ${c * L}`,
-      `${m(`${s1}x + ${s2}x = ${s1 + s2}x`)}. עכשיו חשבי את המספרים.`,
-      `${m(`${s1} \\cdot ${a < 0 ? `(${a})` : a} + ${s2} \\cdot ${b < 0 ? `(${b})` : b} = ${s1 * a + s2 * b}`)}`,
+      combined(B),
+      [
+        ['distribute-partial', combined(a + b)],
+        ['distribute-sign', combined(s1 * a - s2 * b)],
+        ['combine-coef', combined(B, 2)],
+      ],
+      () => combined(B + randSigned(rng, 1, 5)),
+      distributeStep(rng, [[s1, a], [s2, b]]),
+      `${m(`${s1} \\cdot ${a < 0 ? `(${a})` : a} + ${s2} \\cdot ${b < 0 ? `(${b})` : b} = ${B}`)}`,
     ),
     step(
       rng,
       `מצאי את ${m('x')}.`,
       `x = ${x}`,
-      [`x = ${-x}`, `x = ${qLatex(div(c * L + s1 * a + s2 * b, s1 + s2))}`, `x = ${c * L - s1 * a - s2 * b}`],
+      [
+        ['answer-sign', `x = ${-x}`],
+        ['sign-move', `x = ${qLatex(div(c * L + B, K))}`],
+        ['partial', `x = ${c * L - B}`],
+      ],
       () => `x = ${x + randSigned(rng, 1, 4)}`,
-      `העבירי את ${m(String(s1 * a + s2 * b))} אגף, ואז חלקי ב-${m(String(s1 + s2))}.`,
-      `${m(eqn(s1 + s2, c * L - s1 * a - s2 * b))}, ולכן ${m(`x = ${x}`)}.`,
+      collectStep(rng, { A: K, B, C: 0, D: c * L }, [x]),
+      `${m(eqn(K, c * L - B))}, ולכן ${m(`x = ${x}`)}.`,
     ),
   ];
 
@@ -138,6 +194,8 @@ export function fractionSteps(d: Difficulty, rng: Rng): StepProblem {
     latex,
     steps,
     finalAnswer: m(`x = ${x}`),
+    skills: [...new Set(steps.map((st) => st.help.skill))],
+    finalValues: { x },
   };
 }
 
@@ -158,37 +216,59 @@ export function systemSteps(d: Difficulty, rng: Rng): StepProblem {
 
   const steps: Step[] = [
     {
-      ...makeChoices(rng, m(String(kk)), [-kk, s.b2, kk + 1, s.b2 - s.b1].filter((n) => n !== kk).map((n) => m(String(n))), () => m(String(kk + randSigned(rng, 2, 5)))),
+      ...makeCodedChoices(
+        rng,
+        num(kk),
+        [
+          { code: 'scale-sign', value: num(-kk) },
+          { code: 'scale-coef', value: num(s.b2) },
+          { code: 'arithmetic', value: num(kk + 1) },
+          { code: 'scale-diff', value: num(s.b2 - s.b1) },
+        ],
+        () => num(kk + randSigned(rng, 2, 5)),
+      ),
       prompt: `בכמה צריך לכפול את המשוואה הראשונה כדי שהמקדם של ${m('y')} יהיה זהה בשתי המשוואות?`,
       summary: `כופלים את המשוואה הראשונה ב-${m(kk < 0 ? `(${kk})` : String(kk))}: ${m(`${linExpr([[kk * s.a1, 'x'], [kk * s.b1, 'y']])} = ${kk * s.c1}`)}`,
-      hint: `המקדם של ${m('y')} בראשונה הוא ${m(String(s.b1))}, ובשנייה ${m(String(s.b2))}.`,
+      help: eliminationScaleStep(rng, s, kk),
       explanation: `${m(`${s.b1} \\cdot ${kk < 0 ? `(${kk})` : kk} = ${s.b2}`)}`,
     },
     step(
       rng,
       'חסרי: המשוואה השנייה פחות הראשונה המוכפלת. מה מקבלים?',
       eqn(cx, cr),
-      [eqn(s.a2 + kk * s.a1, s.c2 + kk * s.c1), eqn(cx, s.c2 - s.c1), eqn(s.a2 - s.a1, cr)],
+      [
+        ['elim-add', eqn(s.a2 + kk * s.a1, s.c2 + kk * s.c1)],
+        ['elim-rhs', eqn(cx, s.c2 - s.c1)],
+        ['elim-coef', eqn(s.a2 - s.a1, cr)],
+      ],
       () => eqn(cx, cr + randSigned(rng, 1, 6)),
-      `ה-${m('y')}-ים מתבטלים. חסרי בנפרד את מקדמי ה-${m('x')} ואת המספרים.`,
+      eliminationSubtractStep(rng, cx, cr),
       `${m(`${s.a2} - ${kk}\\cdot${s.a1 < 0 ? `(${s.a1})` : s.a1} = ${cx}`)} ו-${m(`${s.c2} - ${kk}\\cdot${s.c1 < 0 ? `(${s.c1})` : s.c1} = ${cr}`)}`,
     ),
     step(
       rng,
       `מצאי את ${m('x')}.`,
       `x = ${s.x}`,
-      [`x = ${-s.x}`, `x = ${qLatex(cr === 0 ? 1 : div(cx, cr))}`, `x = ${cr - cx}`],
+      [
+        ['answer-sign', `x = ${-s.x}`],
+        ['divide-inverted', `x = ${qLatex(cr === 0 ? 1 : div(cx, cr))}`],
+        ['subtract-instead', `x = ${cr - cx}`],
+      ],
       () => `x = ${s.x + randSigned(rng, 1, 4)}`,
-      `חלקי ב-${m(String(cx))}.`,
+      divideStep(rng, cx, cr, [s.x]),
       m(`x = \\frac{${cr}}{${cx}} = ${s.x}`),
     ),
     step(
       rng,
-      `הציבי את ${m(`x = ${s.x}`)} במשוואה הראשונה ומצאי את ${m('y')}.`,
+      `הציבי את ה-${m('x')} שמצאת במשוואה הראשונה ומצאי את ${m('y')}.`,
       `y = ${s.y}`,
-      [`y = ${-s.y}`, `y = ${s.y + 1}`, `y = ${s.c1 - s.a1 * s.x}`],
+      [
+        ['sign-y', `y = ${-s.y}`],
+        ['arithmetic', `y = ${s.y + 1}`],
+        ['partial', `y = ${s.c1 - s.a1 * s.x}`],
+      ],
       () => `y = ${s.y + randSigned(rng, 2, 5)}`,
-      `אחרי ההצבה: ${m(subst)}`,
+      backSubstituteStep(rng, s),
       `${m(subst)}, ולכן ${m(`y = ${s.y}`)}.`,
     ),
   ];
@@ -202,6 +282,8 @@ export function systemSteps(d: Difficulty, rng: Rng): StepProblem {
     latex: systemLatex(s),
     steps,
     finalAnswer: m(`(x, y) = (${s.x}, ${s.y})`),
+    skills: [...new Set(steps.map((st) => st.help.skill))],
+    finalValues: { x: s.x, y: s.y },
   };
 }
 

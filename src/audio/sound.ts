@@ -4,7 +4,7 @@
  */
 import type { WorldId } from '../content/worlds';
 
-type Sfx = 'click' | 'correct' | 'wrong' | 'combo' | 'levelUp' | 'bossHit' | 'bossWin' | 'coin' | 'star' | 'chest' | 'hint';
+type Sfx = 'click' | 'correct' | 'wrong' | 'combo' | 'levelUp' | 'bossHit' | 'bossWin' | 'coin' | 'star' | 'chest' | 'hint' | 'magic';
 
 let ctx: AudioContext | null = null;
 let sfxGain: GainNode | null = null;
@@ -83,6 +83,7 @@ export function play(sfx: Sfx, combo = 0) {
   switch (sfx) {
     case 'click': tone(660, 0, 0.06, 'triangle', 0.15); break;
     case 'hint': tone(880, 0, 0.1, 'sine', 0.15); tone(1175, 0.08, 0.15, 'sine', 0.12); break;
+    case 'magic': [0, 7, 12, 16, 19].forEach((s, i) => tone(note(15 + s), i * 0.05, 0.35, 'sine', 0.1)); break;
     case 'correct': tone(note(3), 0, 0.12, 'triangle'); tone(note(7), 0.09, 0.2, 'triangle'); break;
     case 'combo': {
       const base = Math.min(combo, 12);
