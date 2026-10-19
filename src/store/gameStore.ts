@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Difficulty, TopicId } from '../engine/types';
 import { DEFAULT_WORLD_ORDER, worldById, type LevelDef } from '../content/worlds';
 import type { Progress, Reward, RewardGoal, Settings } from './types';
+import { defaultLearner, recordOutcome, type Outcome } from '../tutor/profile';
 import {
   coinsForStars,
   computeStars,
@@ -38,7 +39,8 @@ export function defaultProgress(): Progress {
     cards: [],
     achievements: {},
     parent: { pin: null, worldOrder: DEFAULT_WORLD_ORDER, manualUnlocks: [], dailyGoalMinutes: 15 },
-    settings: { musicVolume: 0.3, sfxVolume: 0.8, dark: false, textSize: 'md' },
+    settings: { musicVolume: 0.3, sfxVolume: 0.8, dark: false, textSize: 'md', wizardNudge: true },
+    learner: defaultLearner(),
   };
 }
 
@@ -88,6 +90,10 @@ interface GameState {
   /** Returns the XP awarded. */
   recordAnswer: (e: AnswerEvent) => number;
   addPracticeSeconds: (seconds: number) => void;
+  /** Updates the learner profile after a question or step (spec B.3). */
+  recordLearning: (outcome: Outcome) => void;
+  /** XP for solving after help: help never costs XP (spec B.1.5). */
+  awardXp: (amount: number) => void;
   completeLevel: (level: LevelDef, result: SessionResult, sessionXp: number) => LevelSummary;
   resolveMistake: (id: string, correct: boolean) => void;
   addReward: (r: NewReward) => void;
@@ -142,6 +148,10 @@ export const useGame = create<GameState>()(
             const key = dateKey();
             return applyRewardUnlocks({ ...p, practiceSeconds: { ...p.practiceSeconds, [key]: (p.practiceSeconds[key] ?? 0) + seconds } });
           }),
+
+        recordLearning: (outcome) => update((p) => ({ ...p, learner: recordOutcome(p.learner, outcome) })),
+
+        awardXp: (amount) => update((p) => applyRewardUnlocks({ ...p, xp: p.xp + amount })),
 
         completeLevel: (level, result, sessionXp) => {
           const p0 = get().progress;
@@ -246,6 +256,7 @@ function withDefaults(saved: Partial<Progress>): Progress {
     totals: { ...d.totals, ...saved.totals },
     parent: { ...d.parent, ...saved.parent },
     settings: { ...d.settings, ...saved.settings },
+    learner: saved.learner?.schemaVersion === 1 ? { ...d.learner, ...saved.learner } : d.learner,
   };
 }
 

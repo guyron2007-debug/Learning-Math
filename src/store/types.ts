@@ -1,5 +1,6 @@
 import type { Difficulty, TopicId } from '../engine/types';
 import type { WorldId } from '../content/worlds';
+import type { LearnerProfile } from '../tutor/types';
 
 export type RewardGoal =
   | { type: 'xp'; amount: number }
@@ -41,6 +42,8 @@ export interface Settings {
   sfxVolume: number;
   dark: boolean;
   textSize: 'sm' | 'md' | 'lg';
+  /** The wizard twinkles after 60 seconds without input (spec B.4.1). */
+  wizardNudge: boolean;
 }
 
 export interface ParentSettings {
@@ -69,4 +72,6 @@ export interface Progress {
   achievements: Record<string, number>;
   parent: ParentSettings;
   settings: Settings;
+  /** What the wizard knows about how she learns (spec B.3); included in the backup file. */
+  learner: LearnerProfile;
 }

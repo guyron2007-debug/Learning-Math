@@ -1,16 +1,9 @@
-import { evaluate } from 'mathjs';
-
-/** Converts the small LaTeX subset our generators emit into a mathjs expression. */
-export function latexToMath(latex: string): string {
-  let s = latex;
-  // \frac{a}{b} → ((a)/(b)); loop handles nesting from the inside out.
-  const frac = /\\frac\{([^{}]*)\}\{([^{}]*)\}/;
-  while (frac.test(s)) s = s.replace(frac, '(($1)/($2))');
-  return s.replace(/\\cdot/g, '*').replace(/\\left|\\right/g, '').trim();
-}
+import { evalLatex } from '../engine/latex';
 
 export function evalAt(latex: string, scope: Record<string, number>): number {
-  return evaluate(latexToMath(latex), { ...scope }) as number;
+  const v = evalLatex(latex, scope);
+  if (v === null) throw new Error(`Cannot evaluate: ${latex}`);
+  return v;
 }
 
 /** True if "lhs = rhs" holds for the given variable values. */

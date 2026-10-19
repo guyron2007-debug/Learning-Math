@@ -35,3 +35,22 @@ export function makeChoices(
   const options = shuffle(rng, [correct, ...wrong]);
   return { options, correctIndex: options.indexOf(correct) };
 }
+
+export interface CodedChoices extends Choices {
+  /** Misconception code for each option (null for the correct one or a random filler). */
+  optionCodes: (string | null)[];
+}
+
+/** Like makeChoices, but each distractor carries the misconception code it reveals. */
+export function makeCodedChoices(
+  rng: Rng,
+  correct: string,
+  distractors: Array<{ code: string; value: string }>,
+  fallback: () => string,
+  count = 4,
+): CodedChoices {
+  const codeOf = new Map<string, string>();
+  for (const d of distractors) if (d.value !== correct && !codeOf.has(d.value)) codeOf.set(d.value, d.code);
+  const { options, correctIndex } = makeChoices(rng, correct, [...codeOf.keys()], fallback, count);
+  return { options, correctIndex, optionCodes: options.map((o) => codeOf.get(o) ?? null) };
+}

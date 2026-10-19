@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../../engine/rng';
 import type { Difficulty, Question, StepProblem } from '../../engine/types';
 import { linearQuestion, fractionQuestion, inequalityQuestion, systemQuestion, linearSteps, fractionSteps, systemSteps } from '.';
+import { allHelpTexts, expectTutorData, expectStepHelp } from './tutorChecks';
 import { equationHolds, inequalityHolds, parseCases, splitInequality, unwrap, evalAt } from '../testUtils';
 
 const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5];
@@ -17,8 +18,8 @@ function expectSmallNumbers(latex: string, max = 200) {
 }
 
 function expectWellFormed(q: Question) {
-  expect(q.hints).toHaveLength(3);
   expect(q.solution.length).toBeGreaterThan(1);
+  expectTutorData(q);
   if (q.answer.kind === 'choice') {
     expect(q.answer.options).toHaveLength(4);
     expect(new Set(q.answer.options).size).toBe(4);
@@ -94,6 +95,7 @@ describe('eq.system', () => {
 });
 
 function expectStepsWellFormed(p: StepProblem) {
+  expectStepHelp(p);
   for (const s of p.steps) {
     expect(s.options).toHaveLength(4);
     expect(new Set(s.options).size).toBe(4);
@@ -132,5 +134,23 @@ describe('step problems', () => {
       const [x, y] = unwrap(p.finalAnswer).match(/-?\d+/g)!.map(Number);
       for (const e of parseCases(p.latex)) expect(equationHolds(e, { x, y })).toBe(true);
     });
+  });
+});
+
+describe('determinism', () => {
+  it('the same seed gives the same question', () => {
+    const gens = [linearQuestion, fractionQuestion, inequalityQuestion, systemQuestion, linearSteps, fractionSteps, systemSteps];
+    for (const g of gens) for (const d of DIFFICULTIES) {
+      expect(JSON.stringify(g(d, mulberry32(42)))).toBe(JSON.stringify(g(d, mulberry32(42))));
+    }
+  });
+});
+
+describe('help texts', () => {
+  it('cover every rung of every step', () => {
+    const q = linearQuestion(4, mulberry32(7));
+    // distribute + collect + divide, each with 3 hints, a blank and sub-steps
+    expect(q.solutionPaths[0].steps.map((s) => s.skill)).toEqual(['distribute', 'move-term-sign', 'divide-coefficient']);
+    expect(allHelpTexts(q.solutionPaths).length).toBeGreaterThan(12);
   });
 });

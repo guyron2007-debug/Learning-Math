@@ -1,8 +1,10 @@
 import type { Difficulty, GeneratorDef, Question } from '../../engine/types';
 import { type Rng, pick, randInt, randNonZero, randSigned } from '../../engine/rng';
-import { type Q, div, qLatex, add } from '../../engine/rational';
+import { type Q, div, qLatex, add, toNumber } from '../../engine/rational';
 import { linExpr, scaled, m } from '../../engine/format';
-import { makeChoices } from '../../engine/choices';
+import { makeCodedChoices } from '../../engine/choices';
+import type { HelpStep } from '../../tutor/types';
+import { collectStep, distributeStep, inequalityDivideStep } from '../../tutor/equationSteps';
 
 export type Op = '<' | '>' | '\\le' | '\\ge';
 export const flip: Record<Op, Op> = { '<': '>', '>': '<', '\\le': '\\ge', '\\ge': '\\le' };
@@ -12,6 +14,7 @@ const strictToggle: Record<Op, Op> = { '<': '\\le', '>': '\\ge', '\\le': '<', '\
 interface Form {
   latex: string;
   expanded?: string;
+  products?: Array<[number, number]>;
   A: number;
   B: number;
   C: number;
@@ -55,6 +58,7 @@ function build(d: Difficulty, rng: Rng): Form {
       return {
         latex: `${scaled(a, linExpr([[1, 'x'], [b, '']]))} ${op} ${linExpr([[c, 'x'], [dd, '']])}`,
         expanded: `${linExpr([[a, 'x'], [a * b, '']])} ${op} ${linExpr([[c, 'x'], [dd, '']])}`,
+        products: [[a, b]],
         A: a, B: a * b, C: c, D: dd, op,
       };
     }
@@ -81,12 +85,23 @@ export function inequalityQuestion(d: Difficulty, rng: Rng): Question {
   const isolated = `${linExpr([[k, 'x']])} ${f.op} ${r}`;
   const wrongBound = div(f.D + f.B, k);
 
-  const { options, correctIndex } = makeChoices(
+  const { options, correctIndex, optionCodes } = makeCodedChoices(
     rng,
     show(op, bound),
-    [show(flip[op], bound), show(op, wrongBound), show(strictToggle[op], bound), show(flip[op], wrongBound)],
+    [
+      { code: k < 0 ? 'no-flip' : 'flip-unneeded', value: show(flip[op], bound) },
+      { code: 'sign-move', value: show(op, wrongBound) },
+      { code: 'strictness', value: show(strictToggle[op], bound) },
+      { code: 'sign-move', value: show(flip[op], wrongBound) },
+    ],
     () => show(pick(rng, ['<', '>', '\\le', '\\ge'] as Op[]), add(bound, randNonZero(rng, -3, 3))),
   );
+
+  const steps: HelpStep[] = [];
+  const avoid = [toNumber(bound)];
+  if (f.products) steps.push(distributeStep(rng, f.products));
+  if (f.B !== 0 || f.C !== 0) steps.push(collectStep(rng, f, avoid, f.op));
+  if (k !== 1) steps.push(inequalityDivideStep(rng, k, r, f.op, avoid));
 
   const solution = [m(f.latex)];
   if (f.expanded) solution.push(`פותחים סוגריים: ${m(f.expanded)}`);
@@ -103,14 +118,11 @@ export function inequalityQuestion(d: Difficulty, rng: Rng): Question {
     prompt: 'מהו פתרון אי-השוויון?',
     latex: f.latex,
     answer: { kind: 'choice', options, correctIndex },
-    hints: [
-      `פותרים כמו משוואה: מבודדים את ${m('x')}.`,
-      `אחרי כינוס: ${m(isolated)}`,
-      k < 0
-        ? `שימי לב: מחלקים ב-${m(String(k))}, מספר שלילי — זה הופך את סימן אי-השוויון.`
-        : `מחלקים ב-${m(String(k))}. כשמחלקים במספר חיובי, הסימן לא משתנה.`,
-    ],
     solution,
+    skills: [...new Set(steps.map((st) => st.skill))],
+    distractors: options.flatMap((o, i) => (optionCodes[i] ? [{ code: optionCodes[i]!, value: o }] : [])),
+    solutionPaths: [{ id: 'isolate', title: 'בידוד x', steps }],
+    finalValues: { x: toNumber(bound) },
   };
 }
 
