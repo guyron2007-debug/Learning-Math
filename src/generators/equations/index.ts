@@ -3,3 +3,4 @@ export * from './fractions';
 export * from './inequality';
 export * from './system';
 export * from './steps';
+export * from './advanced';

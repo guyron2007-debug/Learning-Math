@@ -33,17 +33,22 @@ export interface WorldDef {
 }
 
 const equationsLevels: LevelDef[] = [
-  { id: 'eq-1', worldId: 'equations', title: 'גלים ראשונים', type: 'speed', generators: ['eq.linear'], count: 10, startDifficulty: 1, maxDifficulty: 4, timeLimit: 150 },
-  { id: 'eq-2', worldId: 'equations', title: 'פותחים סוגריים', type: 'steps', generators: ['steps.linear'], count: 3, startDifficulty: 2, maxDifficulty: 4 },
-  { id: 'eq-3', worldId: 'equations', title: 'שוניות השברים', type: 'speed', generators: ['eq.fractions'], count: 10, startDifficulty: 1, maxDifficulty: 4, timeLimit: 210 },
-  { id: 'eq-4', worldId: 'equations', title: 'מכנה משותף', type: 'steps', generators: ['steps.fractions'], count: 3, startDifficulty: 3, maxDifficulty: 5 },
-  { id: 'eq-5', worldId: 'equations', title: 'זרם אי-השוויון', type: 'speed', generators: ['eq.inequality'], count: 10, startDifficulty: 2, maxDifficulty: 5, timeLimit: 180 },
-  { id: 'eq-6', worldId: 'equations', title: 'שני מגדלורים', type: 'steps', generators: ['steps.system'], count: 2, startDifficulty: 3, maxDifficulty: 5 },
-  { id: 'eq-7', worldId: 'equations', title: 'מבחן הסערה', type: 'speed', generators: ['eq.linear', 'eq.fractions', 'eq.inequality', 'eq.system'], count: 10, startDifficulty: 3, maxDifficulty: 5, timeLimit: 240 },
+  { id: 'eq-1', worldId: 'equations', title: 'גלים ראשונים', type: 'speed', generators: ['eq.linear', 'eq.shortMult'], count: 10, startDifficulty: 3, maxDifficulty: 5, timeLimit: 240 },
+  { id: 'eq-2', worldId: 'equations', title: 'פותחים סוגריים', type: 'steps', generators: ['steps.linear'], count: 3, startDifficulty: 4, maxDifficulty: 5 },
+  { id: 'eq-3', worldId: 'equations', title: 'שוניות השברים', type: 'speed', generators: ['eq.fractions', 'eq.rational'], count: 10, startDifficulty: 3, maxDifficulty: 5, timeLimit: 300 },
+  { id: 'eq-4', worldId: 'equations', title: 'מכנה משותף', type: 'steps', generators: ['steps.fractions'], count: 3, startDifficulty: 4, maxDifficulty: 5 },
+  { id: 'eq-5', worldId: 'equations', title: 'זרם אי-השוויון', type: 'speed', generators: ['eq.inequality'], count: 10, startDifficulty: 3, maxDifficulty: 5, timeLimit: 180 },
+  { id: 'eq-6', worldId: 'equations', title: 'שני מגדלורים', type: 'steps', generators: ['steps.system'], count: 2, startDifficulty: 4, maxDifficulty: 5 },
+  { id: 'eq-param', worldId: 'equations', title: 'מגדלור הפרמטר', type: 'speed', generators: ['eq.param', 'eq.word'], count: 8, startDifficulty: 2, maxDifficulty: 5, timeLimit: 360 },
+  {
+    id: 'eq-7', worldId: 'equations', title: 'מבחן הסערה', type: 'speed',
+    generators: ['eq.linear', 'eq.shortMult', 'eq.fractions', 'eq.rational', 'eq.inequality', 'eq.system', 'eq.param', 'eq.word'],
+    count: 10, startDifficulty: 4, maxDifficulty: 5, timeLimit: 360,
+  },
   {
     id: 'eq-boss', worldId: 'equations', title: 'קרקן המשוואות', type: 'boss',
-    generators: ['eq.linear', 'eq.fractions', 'eq.inequality', 'eq.system', 'steps.linear', 'steps.fractions', 'steps.system'],
-    count: 12, startDifficulty: 3, maxDifficulty: 5,
+    generators: ['eq.linear', 'eq.shortMult', 'eq.fractions', 'eq.rational', 'eq.inequality', 'eq.system', 'eq.param', 'eq.word', 'steps.linear', 'steps.fractions', 'steps.system'],
+    count: 12, startDifficulty: 4, maxDifficulty: 5,
   },
 ];
 
@@ -53,7 +58,7 @@ export const WORLDS: WorldDef[] = [
   { id: 'algFractions', name: 'טירת השברים', emoji: '🏰', topicTitle: 'שברים אלגבריים', description: 'צמצום, כפל, חילוק, חיבור ותחום הצבה', gradient: 'from-fuchsia-400 to-purple-600', cardId: 'hypatia', levels: [] },
   {
     id: 'equations', name: 'מפרץ המשוואות', emoji: '🌊', topicTitle: 'משוואות ואי-שוויונות',
-    description: 'משוואות ממעלה ראשונה, שברים, אי-שוויונות ומערכות',
+    description: 'משוואות ממעלה ראשונה, כפל מקוצר, x במכנה, פרמטרים, אי-שוויונות, מערכות ובעיות מילוליות',
     gradient: 'from-sky-400 to-blue-600', bossName: 'קרקן המשוואות', bossEmoji: '🐙', cardId: 'khwarizmi', levels: equationsLevels,
   },
   { id: 'quadratic', name: 'תחנת הפרבולה', emoji: '🚀', topicTitle: 'משוואה ופונקציה ריבועית', description: 'נוסחת השורשים, קודקוד, חיתוכים והזזות', gradient: 'from-indigo-400 to-violet-700', cardId: 'brahmagupta', levels: [] },

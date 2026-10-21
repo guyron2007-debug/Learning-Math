@@ -52,6 +52,13 @@ describe('unlocking', () => {
     expect(isLevelUnlocked(p, levelById('eq-2')!)).toBe(true);
     expect(nextLevel(p)?.id).toBe('eq-2');
   });
+  it('a level she already passed stays open when a new stage is added before it', () => {
+    const p = defaultProgress();
+    for (const id of ['eq-1', 'eq-2', 'eq-3', 'eq-4', 'eq-5', 'eq-6', 'eq-7']) p.levelStars[id] = 3;
+    expect(isLevelUnlocked(p, levelById('eq-param')!)).toBe(true);
+    expect(isLevelUnlocked(p, levelById('eq-7')!)).toBe(true);
+    expect(isLevelUnlocked(p, levelById('eq-boss')!)).toBe(true);
+  });
   it('manual unlock by parent', () => {
     const p = defaultProgress();
     p.parent.manualUnlocks = ['powers'];

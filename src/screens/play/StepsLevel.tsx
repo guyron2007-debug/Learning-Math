@@ -1,12 +1,11 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { LevelDef } from '../../content/worlds';
 import type { StepProblem } from '../../engine/types';
-import { AdaptiveDifficulty } from '../../engine/adaptive';
 import type { SessionResult } from '../../store/logic';
 import { ProgressBar } from '../../components/ui';
 import { StepCard } from './StepCard';
 import { ComboBadge } from './ComboBadge';
-import { makeItem, useSession } from './session';
+import { makeItem, useLevelDifficulty, useSession } from './session';
 
 interface Props {
   level: LevelDef;
@@ -15,17 +14,17 @@ interface Props {
 
 export function StepsLevel({ level, onFinish }: Props) {
   const session = useSession();
-  const adaptive = useRef(new AdaptiveDifficulty(level.startDifficulty, 2, level.maxDifficulty));
-  const next = (n: number) => makeItem(level.generators[n % level.generators.length], adaptive.current.level) as StepProblem;
+  const difficulty = useLevelDifficulty(level, 2);
+  const next = (n: number) => makeItem(level.generators[n % level.generators.length], difficulty.adaptive.level) as StepProblem;
   const [n, setN] = useState(0);
   const [problem, setProblem] = useState<StepProblem>(() => next(0));
 
   const onStep = useCallback(
     (correct: boolean, hint: boolean) => {
-      adaptive.current.record(correct);
+      difficulty.record(correct);
       return session.record(problem, correct, hint ? 1 : 0);
     },
-    [problem, session],
+    [problem, session, difficulty],
   );
 
   const onDone = () => {
