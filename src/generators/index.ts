@@ -7,6 +7,10 @@ import {
   linearStepsGenerator,
   fractionStepsGenerator,
   systemStepsGenerator,
+  shortMultGenerator,
+  rationalGenerator,
+  paramGenerator,
+  wordGenerator,
 } from './equations';
 
 export const generators: Record<string, GeneratorDef> = Object.fromEntries(
@@ -18,5 +22,9 @@ export const generators: Record<string, GeneratorDef> = Object.fromEntries(
     linearStepsGenerator,
     fractionStepsGenerator,
     systemStepsGenerator,
+    shortMultGenerator,
+    rationalGenerator,
+    paramGenerator,
+    wordGenerator,
   ].map((g) => [g.id, g as GeneratorDef]),
 );

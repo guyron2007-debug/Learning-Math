@@ -72,6 +72,8 @@ export interface Progress {
   achievements: Record<string, number>;
   parent: ParentSettings;
   settings: Settings;
+  /** The difficulty she reached in each level, so the next run resumes there. */
+  levelDifficulty?: Record<string, Difficulty>;
   /** What the wizard knows about how she learns (spec B.3); included in the backup file. */
   learner: LearnerProfile;
 }

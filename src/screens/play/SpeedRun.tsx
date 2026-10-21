@@ -1,12 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
 import type { LevelDef } from '../../content/worlds';
 import type { Question } from '../../engine/types';
-import { AdaptiveDifficulty } from '../../engine/adaptive';
 import type { SessionResult } from '../../store/logic';
 import { ProgressBar } from '../../components/ui';
 import { QuestionCard } from './QuestionCard';
 import { ComboBadge } from './ComboBadge';
-import { makeItem, useElapsedSeconds, useSession } from './session';
+import { makeItem, useElapsedSeconds, useLevelDifficulty, useSession } from './session';
 
 interface Props {
   level: LevelDef;
@@ -15,9 +14,9 @@ interface Props {
 
 export function SpeedRun({ level, onFinish }: Props) {
   const session = useSession();
-  const adaptive = useRef(new AdaptiveDifficulty(level.startDifficulty, 1, level.maxDifficulty));
+  const difficulty = useLevelDifficulty(level);
   const offset = useRef(Math.floor(Math.random() * level.generators.length));
-  const next = (n: number) => makeItem(level.generators[(n + offset.current) % level.generators.length], adaptive.current.level) as Question;
+  const next = (n: number) => makeItem(level.generators[(n + offset.current) % level.generators.length], difficulty.adaptive.level) as Question;
   const [n, setN] = useState(0);
   const [question, setQuestion] = useState<Question>(() => next(0));
   const elapsed = useElapsedSeconds();
@@ -26,10 +25,10 @@ export function SpeedRun({ level, onFinish }: Props) {
 
   const onAnswer = useCallback(
     (correct: boolean, hints: number) => {
-      adaptive.current.record(correct);
+      difficulty.record(correct);
       return session.record(question, correct, hints);
     },
-    [question, session],
+    [question, session, difficulty],
   );
 
   const onContinue = () => {

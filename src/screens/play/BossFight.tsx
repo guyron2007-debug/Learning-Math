@@ -2,7 +2,6 @@ import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
 import { useCallback, useRef, useState } from 'react';
 import { worldById, type LevelDef } from '../../content/worlds';
 import type { PlayItem } from '../../engine/types';
-import { AdaptiveDifficulty } from '../../engine/adaptive';
 import type { SessionResult } from '../../store/logic';
 import { pick } from '../../engine/rng';
 import { Button, ProgressBar } from '../../components/ui';
@@ -11,7 +10,7 @@ import { play } from '../../audio/sound';
 import { QuestionCard } from './QuestionCard';
 import { StepCard } from './StepCard';
 import { ComboBadge } from './ComboBadge';
-import { isStepGenerator, makeItem, useSession } from './session';
+import { isStepGenerator, makeItem, useLevelDifficulty, useSession } from './session';
 
 interface Props {
   level: LevelDef;
@@ -23,12 +22,12 @@ const TAUNTS = ['חה! זה כל מה שיש לך?', 'הגלים שלי חזקי
 export function BossFight({ level, onFinish }: Props) {
   const world = worldById(level.worldId);
   const session = useSession();
-  const adaptive = useRef(new AdaptiveDifficulty(level.startDifficulty, level.startDifficulty, level.maxDifficulty));
+  const difficulty = useLevelDifficulty(level, level.startDifficulty);
   const questionGens = level.generators.filter((g) => !isStepGenerator(g));
   const stepGens = level.generators.filter(isStepGenerator);
   // Every third round is a multi-step "special attack".
   const next = (n: number): PlayItem =>
-    makeItem(n % 3 === 2 && stepGens.length ? pick(Math.random, stepGens) : pick(Math.random, questionGens), adaptive.current.level);
+    makeItem(n % 3 === 2 && stepGens.length ? pick(Math.random, stepGens) : pick(Math.random, questionGens), difficulty.adaptive.level);
 
   const [n, setN] = useState(0);
   const [item, setItem] = useState<PlayItem>(() => next(0));
@@ -41,7 +40,7 @@ export function BossFight({ level, onFinish }: Props) {
 
   const hit = useCallback(
     (correct: boolean) => {
-      adaptive.current.record(correct);
+      difficulty.record(correct);
       if (correct) {
         play('bossHit');
         setHitKey((k) => k + 1);
@@ -55,7 +54,7 @@ export function BossFight({ level, onFinish }: Props) {
         void boss.start({ scale: [1, 1.25, 1], y: [0, 20, 0], transition: { duration: 0.5 } });
       }
     },
-    [boss],
+    [boss, difficulty],
   );
 
   const onAnswer = useCallback(

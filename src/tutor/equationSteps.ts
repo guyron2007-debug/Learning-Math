@@ -295,3 +295,46 @@ export function backSubstituteStep(rng: Rng, s: SystemParams): HelpStep {
     fixes: { 'swap-xy': `בדקי שלא התחלפו לך ${m('x')} ו-${m('y')}.`, 'sign-y': `בדקי את הסימן של ${m('y')} בסוף.` },
   };
 }
+
+// ---------- Short multiplication ----------
+
+/** (p·x + a)(q·x + b) → pq·x² + (pb + qa)·x + ab. A square or a difference of squares gets its own formula. */
+export function expandStep(rng: Rng, [p, a]: [number, number], [q, b]: [number, number]): HelpStep {
+  const square = p === q && a === b;
+  const diff = p === q && a === -b && a !== 0;
+  const e = randInt(rng, 2, 6);
+  const f1 = `(${linExpr([[p, 'x'], [a, '']])})`;
+  const product = square ? `${f1}^2` : `${f1}(${linExpr([[q, 'x'], [b, '']])})`;
+  const x2 = linExpr([[p * q, 'x^2']]);
+  const ab = a * b;
+  const tail = ab === 0 ? '' : ` ${ab < 0 ? '-' : '+'} ${Math.abs(ab)}`;
+  return {
+    skill: 'short-mult-square',
+    label: square ? 'ריבוע של סכום' : diff ? 'הפרש ריבועים' : 'כפל סוגריים',
+    hints: [
+      `איך פותחים את ${m(product)}? איזו נוסחה מתאימה כאן?`,
+      square
+        ? `${m('(a + b)^2 = a^2 + 2ab + b^2')} — אל תשכחי את האיבר האמצעי. אחרי הפתיחה בדקי אם ${m('x^2')} מצטמצם עם ${m('x^2')} מהצד השני.`
+        : diff
+          ? `${m('(a + b)(a - b) = a^2 - b^2')}. ואם יש מינוס לפני הסוגריים — הוא הופך את הסימן של כל מה שיוצא.`
+          : `כל איבר בסוגריים הראשונים כופלים בכל איבר בשניים: ${m('(a + b)(c + d) = ac + ad + bc + bd')}.`,
+      square
+        ? `דוגמה: ${m(`(x + ${e})^2 = x^2 + ${2 * e}x + ${e * e}`)}`
+        : diff
+          ? `דוגמה: ${m(`(x + ${e})(x - ${e}) = x^2 - ${e * e}`)}`
+          : `דוגמה: ${m(`(x + ${e})(x + 1) = x^2 + ${e + 1}x + ${e}`)}`,
+    ],
+    blank: diff
+      ? { latex: `${product} = ${x2} - \\square`, answer: a * a }
+      : { latex: `${product} = ${x2} + \\square\\, x${tail}`, answer: p * b + q * a },
+    subSteps: [
+      `כמה זה ${m(`${linExpr([[p, 'x']])} \\cdot ${paren(b)}`)}, וכמה זה ${m(`${paren(a)} \\cdot ${linExpr([[q, 'x']])}`)}?`,
+      `חברי את שני האיברים עם ${m('x')}. ומה המספר שנשאר: ${m(`${paren(a)} \\cdot ${paren(b)}`)}?`,
+    ],
+    fixes: {
+      'square-no-middle': `בדקי: כשפותחים ריבוע יש גם איבר אמצעי ${m('2ab')}.`,
+      'minus-bracket': `מינוס לפני סוגריים הופך את הסימן של כל האיברים שיוצאים מהם, לא רק של הראשון.`,
+      'diff-squares-sign': `${m('(a + b)(a - b)')} זה ${m('a^2 - b^2')} — עם מינוס.`,
+    },
+  };
+}

@@ -16,6 +16,8 @@ export type SkillId =
   | 'two-eq-substitution'
   | 'two-eq-elimination'
   | 'back-substitute'
+  | 'parameter'
+  | 'word-model'
   // Later worlds (spec B.3.1); tagged once their generators exist.
   | 'factor-common'
   | 'factor-trinomial'

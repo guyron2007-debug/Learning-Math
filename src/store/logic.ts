@@ -106,6 +106,8 @@ export function isWorldUnlocked(p: Progress, id: WorldId): boolean {
 export function isLevelUnlocked(p: Progress, level: LevelDef): boolean {
   const world = worldById(level.worldId);
   if (!isWorldUnlocked(p, world.id)) return false;
+  // A level she already passed stays open, even if a new stage was added before it.
+  if ((p.levelStars[level.id] ?? 0) > 0) return true;
   const i = world.levels.findIndex((l) => l.id === level.id);
   return i === 0 || (p.levelStars[world.levels[i - 1].id] ?? 0) > 0;
 }

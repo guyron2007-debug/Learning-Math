@@ -13,6 +13,8 @@ export const SKILL_LABEL: Record<SkillId, string> = {
   'two-eq-substitution': 'שיטת ההצבה',
   'two-eq-elimination': 'השוואת מקדמים',
   'back-substitute': 'הצבה חזרה',
+  parameter: 'משוואות עם פרמטר',
+  'word-model': 'בניית משוואה מבעיה מילולית',
   'factor-common': 'הוצאת גורם משותף',
   'factor-trinomial': 'פירוק טרינום',
   'short-mult-square': 'כפל מקוצר',
@@ -33,4 +35,7 @@ export const SKILL_TIP: Partial<Record<SkillId, string>> = {
   'two-eq-elimination': 'במערכת, נסי להשוות מקדמים כדי שמשתנה אחד ייעלם.',
   'two-eq-substitution': 'כשמשתנה מופיע לבד, בודדי אותו והציבי במשוואה השנייה.',
   'back-substitute': 'אחרי שמצאת משתנה אחד, הציבי אותו כדי למצוא את השני.',
+  parameter: 'בפרמטר: בדקי מתי המקדם של $x$ מתאפס, ומה קורה אז לצד השני.',
+  'word-model': 'בבעיה מילולית: קודם מגדירים מה זה $x$, ורק אז כותבים משוואה.',
+  'short-mult-square': 'בפתיחת ריבוע, אל תשכחי את האיבר האמצעי $2ab$.',
 };

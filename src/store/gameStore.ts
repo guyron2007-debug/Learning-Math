@@ -92,6 +92,7 @@ interface GameState {
   addPracticeSeconds: (seconds: number) => void;
   /** Updates the learner profile after a question or step (spec B.3). */
   recordLearning: (outcome: Outcome) => void;
+  rememberDifficulty: (levelId: string, difficulty: Difficulty) => void;
   /** XP for solving after help: help never costs XP (spec B.1.5). */
   awardXp: (amount: number) => void;
   completeLevel: (level: LevelDef, result: SessionResult, sessionXp: number) => LevelSummary;
@@ -150,6 +151,11 @@ export const useGame = create<GameState>()(
           }),
 
         recordLearning: (outcome) => update((p) => ({ ...p, learner: recordOutcome(p.learner, outcome) })),
+
+        rememberDifficulty: (levelId, difficulty) => {
+          if (get().progress.levelDifficulty?.[levelId] === difficulty) return;
+          update((p) => ({ ...p, levelDifficulty: { ...p.levelDifficulty, [levelId]: difficulty } }));
+        },
 
         awardXp: (amount) => update((p) => applyRewardUnlocks({ ...p, xp: p.xp + amount })),
 

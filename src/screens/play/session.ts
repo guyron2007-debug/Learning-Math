@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { generators } from '../../generators';
 import { defaultRng } from '../../engine/rng';
 import { clampDifficulty, type Difficulty, type PlayItem } from '../../engine/types';
+import { levelAdaptive } from '../../engine/adaptive';
+import type { LevelDef } from '../../content/worlds';
 import { useGame } from '../../store/gameStore';
 import type { SessionResult } from '../../store/logic';
 import { play } from '../../audio/sound';
@@ -10,6 +12,17 @@ export function makeItem(generatorId: string, difficulty: Difficulty): PlayItem 
   const def = generators[generatorId];
   if (!def) throw new Error(`Unknown generator ${generatorId}`);
   return def.generate(clampDifficulty(difficulty, def.minDifficulty, def.maxDifficulty), defaultRng);
+}
+
+/** Adaptive difficulty for a level that resumes where she finished it last time. */
+export function useLevelDifficulty(level: LevelDef, minFloor?: Difficulty) {
+  const rememberDifficulty = useGame((s) => s.rememberDifficulty);
+  const [adaptive] = useState(() => levelAdaptive(level, useGame.getState().progress.levelDifficulty?.[level.id], minFloor));
+  const record = useCallback(
+    (correct: boolean) => rememberDifficulty(level.id, adaptive.record(correct)),
+    [adaptive, level.id, rememberDifficulty],
+  );
+  return useMemo(() => ({ adaptive, record }), [adaptive, record]);
 }
 
 export const isStepGenerator = (id: string) => id.startsWith('steps.');
